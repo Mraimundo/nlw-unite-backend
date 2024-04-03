@@ -2,7 +2,17 @@ POST http://localhost:3333/events
 Content-Type: application/json
 
 {
- "title": "Unite Node",
+ "title": "Unite React",
  "details": "Um evento para que é apaixonado por programação",
  "maximumAttendees": 100
+}
+
+###
+
+POST http://localhost:3333/events/6fc3f5b3-1cca-44e2-be4c-cbfb7c57a962/attendees
+Content-Type: application/json
+
+{
+ "name": "Pedro Tungadio",
+ "email": "pedro@gmail.com"
 }
