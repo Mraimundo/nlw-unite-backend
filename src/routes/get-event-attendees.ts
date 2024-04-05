@@ -10,7 +10,6 @@ export async function getEventAttendees(app: FastifyInstance) {
       schema: {
         summary: "Get event attendees",
         tags: ["events"],
-
         params: z.object({
           eventId: z.string().uuid(),
         }),
@@ -29,42 +28,57 @@ export async function getEventAttendees(app: FastifyInstance) {
                 checkedInAt: z.date().nullable(),
               })
             ),
+            total: z.number(),
           }),
         },
       },
     },
     async (request, reply) => {
       const { eventId } = request.params;
-      const { query, pageIndex } = request.query;
+      const { pageIndex, query } = request.query;
 
-      const attendees = await prisma.attendee.findMany({
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createAt: true,
-          checkIn: {
-            select: {
-              createAt: true,
+      const [attendees, total] = await Promise.all([
+        prisma.attendee.findMany({
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+            checkIn: {
+              select: {
+                createdAt: true,
+              },
             },
           },
-        },
-        where: query
-          ? {
-              eventId,
-              name: {
-                contains: query,
+          where: query
+            ? {
+                eventId,
+                name: {
+                  contains: query,
+                },
+              }
+            : {
+                eventId,
               },
-            }
-          : {
-              eventId,
-            },
-        take: 10,
-        skip: pageIndex * 10,
-        orderBy: {
-          createAt: "desc",
-        },
-      });
+          take: 10,
+          skip: pageIndex * 10,
+          orderBy: {
+            createdAt: "desc",
+          },
+        }),
+        prisma.attendee.count({
+          where: query
+            ? {
+                eventId,
+                name: {
+                  contains: query,
+                },
+              }
+            : {
+                eventId,
+              },
+        }),
+      ]);
 
       return reply.send({
         attendees: attendees.map((attendee) => {
@@ -72,10 +86,11 @@ export async function getEventAttendees(app: FastifyInstance) {
             id: attendee.id,
             name: attendee.name,
             email: attendee.email,
-            createdAt: attendee.createAt,
-            checkedInAt: attendee.checkIn?.createAt ?? null,
+            createdAt: attendee.createdAt,
+            checkedInAt: attendee.checkIn?.createdAt ?? null,
           };
         }),
+        total,
       });
     }
   );
